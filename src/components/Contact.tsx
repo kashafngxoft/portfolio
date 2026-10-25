@@ -1,11 +1,30 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { site } from "@/data/site";
+import { Magnetic } from "@/components/Magnetic";
 import { Reveal } from "@/components/Reveal";
+import { SectionHeading } from "@/components/SectionHeading";
+import {
+  ArrowRightIcon,
+  ArrowUpRightIcon,
+  CheckIcon,
+  CopyIcon,
+  GitLabIcon,
+  LinkedInIcon,
+  MailIcon,
+  MapPinIcon,
+} from "@/components/icons";
 
 export function Contact() {
   const [status, setStatus] = useState<"idle" | "sent">("idle");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,72 +41,136 @@ export function Contact() {
     form.reset();
   }
 
-  return (
-    <section id="contact" className="border-t border-line py-28 md:py-36">
-      <div className="mx-auto grid max-w-6xl gap-16 px-6 md:grid-cols-[1fr_1fr] md:gap-24 md:px-8">
-        <Reveal>
-          <p className="section-eyebrow">Contact</p>
-          <h2 className="section-title max-w-md text-3xl md:text-[2.75rem]">
-            Let&apos;s build something useful
-          </h2>
-          <p className="mt-6 max-w-sm text-ink-muted">
-            Open to opportunities and collaborations. Email, LinkedIn, GitLab—or
-            a short note.
-          </p>
-          <div className="mt-10 flex flex-col items-start gap-4">
-            <a href={`mailto:${site.email}`} className="btn-primary">
-              {site.email}
-            </a>
-            <div className="flex flex-wrap gap-6">
-              <a
-                href={site.links.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost"
-              >
-                LinkedIn
-              </a>
-              <a
-                href={site.links.gitlab}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost"
-              >
-                GitLab
-              </a>
-            </div>
-          </div>
-        </Reveal>
+  async function copyEmail() {
+    try {
+      await navigator.clipboard.writeText(site.email);
+      setCopied(true);
+    } catch {
+      // Clipboard access can be denied; the mailto button beside it still works.
+    }
+  }
 
-        <Reveal delayMs={80}>
-          <form onSubmit={onSubmit} className="soft-panel p-7 md:p-9">
-            <label className="block text-sm text-ink-muted">
-              Name
-              <input required name="name" className="field" />
-            </label>
-            <label className="mt-6 block text-sm text-ink-muted">
-              Email
-              <input required type="email" name="email" className="field" />
-            </label>
-            <label className="mt-6 block text-sm text-ink-muted">
-              Message
-              <textarea
-                required
-                name="message"
-                rows={4}
-                className="field resize-y"
-              />
-            </label>
-            <button type="submit" className="btn-primary mt-8">
-              Send message
-            </button>
-            {status === "sent" ? (
-              <p className="mt-3 text-sm text-ink-muted">
-                Opening your email app…
-              </p>
-            ) : null}
-          </form>
-        </Reveal>
+  // Light follows the pointer across the section (CSS variables, no re-render).
+  function onPointerMove(event: React.PointerEvent<HTMLElement>) {
+    if (event.pointerType !== "mouse") return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--cx", `${event.clientX - rect.left}px`);
+    event.currentTarget.style.setProperty("--cy", `${event.clientY - rect.top}px`);
+  }
+
+  return (
+    <section
+      id="contact"
+      className="contact relative overflow-hidden py-24 md:py-36"
+      onPointerMove={onPointerMove}
+    >
+      <div className="hairline absolute inset-x-0 top-0" aria-hidden />
+      <div className="contact-light" aria-hidden />
+
+      <div className="relative mx-auto max-w-[90rem] px-5 md:px-10">
+        <SectionHeading
+          index="05"
+          eyebrow="Contact"
+          title="Let's build something useful"
+          titleClassName="max-w-[12ch] text-[clamp(3rem,9.2vw,9.5rem)] leading-[0.92]"
+        />
+
+        <div className="mt-16 grid gap-14 lg:grid-cols-12 lg:gap-10">
+          <Reveal className="lg:col-span-5">
+            <p className="max-w-md text-lg leading-relaxed text-ink-muted">
+              Open to opportunities and collaborations. Email, LinkedIn, GitLab—or a short note.
+            </p>
+
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <Magnetic>
+                <a href={`mailto:${site.email}`} className="btn btn-primary">
+                  <MailIcon />
+                  {site.email}
+                </a>
+              </Magnetic>
+              <button
+                type="button"
+                onClick={copyEmail}
+                className="icon-btn"
+                aria-label={copied ? "Email address copied" : "Copy email address"}
+                title={copied ? "Copied" : "Copy email address"}
+              >
+                {copied ? <CheckIcon className="text-accent" /> : <CopyIcon />}
+              </button>
+              <span className="sr-only" aria-live="polite">
+                {copied ? "Email address copied to clipboard" : ""}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Magnetic max={8}>
+                <a
+                  href={site.links.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost btn-sm"
+                >
+                  <LinkedInIcon size={14} />
+                  LinkedIn
+                  <ArrowUpRightIcon className="btn-icon" size={13} />
+                </a>
+              </Magnetic>
+              <Magnetic max={8}>
+                <a
+                  href={site.links.gitlab}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost btn-sm"
+                >
+                  <GitLabIcon size={14} />
+                  GitLab
+                  <ArrowUpRightIcon className="btn-icon" size={13} />
+                </a>
+              </Magnetic>
+            </div>
+
+            <p className="mt-10 flex items-center gap-2 text-sm text-ink-subtle">
+              <MapPinIcon size={14} />
+              {site.location}
+            </p>
+          </Reveal>
+
+          <Reveal delayMs={120} className="lg:col-span-6 lg:col-start-7">
+            <form onSubmit={onSubmit} className="glass rounded-[1.75rem] p-6 md:p-9">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-ink-muted">
+                  Name
+                  <input required name="name" autoComplete="name" className="field" />
+                </label>
+                <label className="block text-sm font-medium text-ink-muted">
+                  Email
+                  <input
+                    required
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    className="field"
+                  />
+                </label>
+              </div>
+              <label className="mt-5 block text-sm font-medium text-ink-muted">
+                Message
+                <textarea required name="message" rows={5} className="field resize-y" />
+              </label>
+              <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
+                <Magnetic>
+                  <button type="submit" className="btn btn-primary">
+                    Send message
+                    <ArrowRightIcon className="btn-icon" />
+                  </button>
+                </Magnetic>
+                <p className="text-sm text-ink-muted" aria-live="polite">
+                  {status === "sent" ? "Opening your email app…" : ""}
+                </p>
+              </div>
+            </form>
+          </Reveal>
+        </div>
       </div>
     </section>
   );

@@ -1,9 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { projects } from "@/data/projects";
-import { Reveal } from "@/components/Reveal";
+import { useMemo, useState, ViewTransition } from "react";
+import { AnimatePresence, m, useMotionValue, useSpring } from "motion/react";
+import { projects, type Project } from "@/data/projects";
+import { EASE_OUT, Reveal } from "@/components/Reveal";
+import { ProjectCode } from "@/components/ProjectCode";
+import { SectionHeading } from "@/components/SectionHeading";
+import { ArrowRightIcon } from "@/components/icons";
 
 const filters = [
   "All",
@@ -14,8 +19,36 @@ const filters = [
   "Python",
 ] as const;
 
+type Filter = (typeof filters)[number];
+
+function RowTitle({ project }: { project: Project }) {
+  const title = (
+    <h3 className="index-title font-display text-[clamp(1.7rem,3.4vw,3rem)] font-semibold leading-none tracking-[-0.035em] text-ink">
+      {project.title}
+    </h3>
+  );
+  // Featured titles already carry this name in the showcase; names must be unique per page.
+  return project.featured ? (
+    title
+  ) : (
+    <ViewTransition name={`project-title-${project.slug}`} share="morph" default="none">
+      {title}
+    </ViewTransition>
+  );
+}
+
+/**
+ * Index of every project with the original filters. On desktop a preview of
+ * the hovered project follows the cursor; rows are plain links, so keyboard
+ * and touch users lose nothing.
+ */
 export function Projects() {
-  const [filter, setFilter] = useState<(typeof filters)[number]>("All");
+  const [filter, setFilter] = useState<Filter>("All");
+  const [hovered, setHovered] = useState<string | null>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const previewX = useSpring(x, { stiffness: 260, damping: 30, mass: 0.6 });
+  const previewY = useSpring(y, { stiffness: 260, damping: 30, mass: 0.6 });
 
   const visible = useMemo(() => {
     if (filter === "All") return projects;
@@ -25,66 +58,153 @@ export function Projects() {
     );
   }, [filter]);
 
+  function onPointerMove(event: React.PointerEvent<HTMLUListElement>) {
+    if (event.pointerType !== "mouse") return;
+    // Keep the 20rem preview inside the viewport.
+    x.set(Math.min(event.clientX, window.innerWidth - 360));
+    y.set(Math.min(Math.max(event.clientY, 140), window.innerHeight - 140));
+  }
+
   return (
-    <section id="work" className="border-t border-line bg-bg-elevated py-28 md:py-36">
-      <div className="mx-auto max-w-6xl px-6 md:px-8">
-        <Reveal>
-          <div className="max-w-xl">
-            <p className="section-eyebrow">Selected work</p>
-            <h2 className="section-title text-3xl md:text-[2.75rem]">
-              Products I&apos;ve built
-            </h2>
-            <p className="mt-5 text-ink-muted">
-              Frontend products and backend APIs—each project listed the same
-              way. Screens live in the gallery below.
-            </p>
-          </div>
-        </Reveal>
+    <section id="index" className="relative py-24 md:py-36">
+      <div className="hairline absolute inset-x-0 top-0" aria-hidden />
+      <div className="mx-auto max-w-[90rem] px-5 md:px-10">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
+          <SectionHeading
+            className="lg:col-span-7"
+            eyebrow="Index"
+            title="Projects & stacks"
+            description="Frontend products and backend APIs—each project listed the same way. Screens live in the gallery below."
+            titleClassName="text-[clamp(2.4rem,5vw,4.5rem)]"
+          />
+          <Reveal delayMs={150} y={12} className="lg:col-span-5 lg:justify-self-end">
+            <div
+              role="group"
+              aria-label="Filter projects by technology"
+              className="nav-pill flex flex-wrap gap-0.5 rounded-[1.4rem] p-1 sm:rounded-full"
+            >
+              {filters.map((item) => {
+                const isActive = filter === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setFilter(item)}
+                    aria-pressed={isActive}
+                    className={`filter-chip ${isActive ? "is-active" : ""}`}
+                  >
+                    {isActive ? (
+                      <m.span
+                        layoutId="filter-active"
+                        className="absolute inset-0 rounded-full bg-[var(--btn-bg)]"
+                        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span className="relative">{item}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Reveal>
+        </div>
 
-        <Reveal delayMs={60}>
-          <div className="mt-12 flex flex-wrap">
-            {filters.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setFilter(item)}
-                className={`filter-chip ${filter === item ? "is-active" : ""}`}
+        <p className="sr-only" aria-live="polite">
+          {`${visible.length} ${visible.length === 1 ? "project" : "projects"} shown`}
+        </p>
+
+        <ul
+          className="relative mt-14 border-t border-line"
+          onPointerMove={onPointerMove}
+          onPointerLeave={() => setHovered(null)}
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            {visible.map((project) => (
+              <m.li
+                key={project.slug}
+                layout
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                transition={{ duration: 0.55, ease: EASE_OUT }}
+                className="border-b border-line"
+                onPointerEnter={(event) => {
+                  if (event.pointerType === "mouse") setHovered(project.slug);
+                }}
               >
-                {item}
-              </button>
-            ))}
-          </div>
-        </Reveal>
-
-        <ul className="mt-14 divide-y divide-line border-y border-line">
-          {visible.map((project, index) => (
-            <li key={project.slug}>
-              <Reveal delayMs={index * 40}>
                 <Link
                   href={`/work/${project.slug}`}
-                  className="group grid gap-3 py-8 transition-colors md:grid-cols-[1fr_auto] md:items-baseline md:gap-10"
+                  transitionTypes={["nav-forward"]}
+                  className="index-row group"
                 >
-                  <div>
-                    <p className="section-eyebrow">{project.subtitle}</p>
-                    <h3 className="mt-2 font-display text-[1.55rem] font-semibold tracking-tight text-ink transition-colors duration-300 group-hover:text-accent md:text-[1.75rem]">
-                      {project.title}
-                    </h3>
-                    <p className="mt-3 max-w-2xl text-[0.95rem] leading-relaxed text-ink-muted">
+                  <span className="font-mono text-xs text-ink-subtle md:pt-2">
+                    {String(projects.indexOf(project) + 1).padStart(2, "0")}
+                  </span>
+                  <span className="block min-w-0">
+                    <RowTitle project={project} />
+                    <span className="section-eyebrow mt-3 block">{project.subtitle}</span>
+                  </span>
+                  <span className="index-detail">
+                    <span className="block text-[0.95rem] leading-relaxed text-ink-muted">
                       {project.description}
-                    </p>
-                    <p className="mt-4 font-mono text-[0.68rem] tracking-[0.08em] text-ink/45 uppercase">
-                      {project.tech.slice(0, 5).join(" · ")}
-                    </p>
-                  </div>
-                  <span className="btn-ghost self-start text-[0.75rem] opacity-70 transition-opacity group-hover:opacity-100">
-                    Case study →
+                    </span>
+                    <span className="mt-3 block text-sm leading-relaxed text-ink-muted">
+                      <span className="text-ink">Role — </span>
+                      {project.role}
+                    </span>
+                    <span className="mt-4 flex flex-wrap gap-2">
+                      {project.tech.map((tech) => (
+                        <span key={tech} className="tag">
+                          {tech}
+                        </span>
+                      ))}
+                    </span>
+                  </span>
+                  <span className="index-meta">
+                    <span className="font-mono text-xs text-ink-subtle">{project.year}</span>
+                    <span className="index-arrow" aria-hidden>
+                      <ArrowRightIcon />
+                    </span>
                   </span>
                 </Link>
-              </Reveal>
-            </li>
-          ))}
+              </m.li>
+            ))}
+          </AnimatePresence>
         </ul>
       </div>
+
+      <m.div
+        className="index-preview"
+        style={{ x: previewX, y: previewY }}
+        data-active={hovered !== null}
+        aria-hidden
+      >
+        {projects.map((project) => {
+          const cover = project.images?.[0];
+          return (
+            <div
+              key={project.slug}
+              className="index-preview-item"
+              data-show={hovered === project.slug}
+            >
+              {cover ? (
+                <Image
+                  src={cover.src}
+                  alt=""
+                  width={cover.width}
+                  height={cover.height}
+                  sizes="320px"
+                  className="h-full w-full object-cover object-top"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-bg-elevated p-4">
+                  <ProjectCode project={project} className="w-full" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </m.div>
     </section>
   );
 }

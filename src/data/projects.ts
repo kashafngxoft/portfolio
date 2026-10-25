@@ -1,5 +1,7 @@
 export type ProjectImage = {
   src: string;
+  width: number;
+  height: number;
   alt: string;
 };
 
@@ -45,6 +47,8 @@ export const projects: Project[] = [
     images: [
       {
         src: "/projects/shopenzi.png",
+        width: 476,
+        height: 466,
         alt: "Shopenzi B2B marketplace homepage with search and categories",
       },
     ],
@@ -72,14 +76,20 @@ export const projects: Project[] = [
     images: [
       {
         src: "/projects/amspensan-students.png",
+        width: 1024,
+        height: 505,
         alt: "Amspensan My Students dashboard for preceptors",
       },
       {
         src: "/projects/amspensan-admin.png",
+        width: 1024,
+        height: 522,
         alt: "Amspensan Student Management admin grid",
       },
       {
         src: "/projects/amspensan-preceptors.png",
+        width: 1024,
+        height: 483,
         alt: "Amspensan Preceptor Management admin view",
       },
     ],
@@ -128,6 +138,8 @@ export const projects: Project[] = [
     images: [
       {
         src: "/projects/earth-day.png",
+        width: 714,
+        height: 222,
         alt: "Earth Day recycling app promo with digital receipt feedback screen",
       },
     ],
@@ -154,6 +166,8 @@ export const projects: Project[] = [
     images: [
       {
         src: "/projects/her-golf.png",
+        width: 796,
+        height: 471,
         alt: "Her Golf landing page how-it-works section",
       },
     ],
